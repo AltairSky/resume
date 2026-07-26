@@ -103,6 +103,17 @@
   }
   .line.dim { color: var(--dim); }
   .line.sys { color: var(--accent); }
+  .line.h2 { font-size: .95em; margin: 8px 0 4px; }
+  .line.h3 { font-size: .88em; margin: 6px 0 3px; color: var(--ink); }
+  .line.li { padding-left: 1.1em; }
+  .line b { color: var(--bright); font-weight: 700; }
+  .line i { font-style: italic; }
+  .line code {
+    font-family: var(--font); font-size: .92em;
+    border: 1px solid var(--dim); border-radius: 3px; padding: 0 4px;
+  }
+  .line a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .line a:hover { color: var(--bright); }
 
   .tailpiece {
     margin: 34px 0 14px; text-align: center;
@@ -318,6 +329,7 @@ const HELP = [
   "theme · switch color theme",
   "lang  · switch language (RU/EN)",
   "help  · this list",
+  "status · did content files load?",
   "",
   "…or just tap the buttons below."
 ];
@@ -342,36 +354,83 @@ const ALIASES = {
   "help": ":help", "помощь": ":help", "?": ":help",
   "theme": ":theme", "тема": ":theme",
   "lang": ":lang", "язык": ":lang", "en": ":lang", "ru": ":lang",
-  "sudo hire": ":hire"
+  "sudo hire": ":hire",
+  "status": ":status", "статус": ":status"
 };
 
-/* ---------- markdown-ish parser ---------- */
-/* формат: блоки начинаются со строки "=== id";
-   затем необязательные строки "label: …" и "caption: …";
-   всё остальное до следующего "===" — текст страницы как есть. */
+/* ---------- parser ----------
+   Каждая строка "# Заголовок" начинает НОВУЮ вкладку.
+   "## " и "### " — подзаголовки внутри вкладки.
+   Старый формат "=== id" + "label:" тоже поддерживается. */
+const TRANSLIT = {"а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"e","ж":"zh","з":"z","и":"i","й":"y","к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f","х":"h","ц":"ts","ч":"ch","ш":"sh","щ":"sch","ъ":"","ы":"y","ь":"","э":"e","ю":"yu","я":"ya"};
+function slug(s) {
+  s = s.toLowerCase().trim();
+  let out = "";
+  for (const ch of s) out += (TRANSLIT[ch] !== undefined ? TRANSLIT[ch] : ch);
+  out = out.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return out || "page";
+}
+const CANON = [
+  [/контакт|contact/i, "contact"],
+  [/язык|language/i, "langs"],
+  [/проект|project/i, "projects"],
+  [/код|code/i, "code"],
+  [/^(дом|home)$/i, "home"]
+];
+function canonId(label) {
+  for (const [re, id] of CANON) if (re.test(label)) return id;
+  return slug(label);
+}
 function parseContent(text) {
   const pages = {};
   const order = [];
-  const parts = text.split(/^===[ \t]*/m).slice(1);
-  for (const part of parts) {
-    const lines = part.split(/\r?\n/);
-    const id = (lines.shift() || "").trim();
-    if (!id) continue;
-    const page = { label: null, caption: null, lines: [] };
-    while (lines.length) {
-      const m = lines[0].match(/^(label|caption)[ \t]*:[ \t]*(.*)$/);
-      if (m) { page[m[1]] = m[2].trim(); lines.shift(); }
-      else break;
-    }
+  function addPage(id, label, lines) {
     while (lines.length && lines[0].trim() === "") lines.shift();
     while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
-    page.lines = lines;
-    pages[id] = page;
+    if (!id) return;
+    while (pages[id]) id += "2";
+    pages[id] = { label: (label || id), caption: null, lines };
     order.push(id);
+  }
+  let blocks;
+  const rawParts = text.split(/^[ \t]*={3,}[ \t]*/m);
+  if (rawParts.length === 1) {
+    blocks = [{ id: null, label: null, body: text.split(/\r?\n/) }];
+  } else {
+    blocks = rawParts.slice(1).map(part => {
+      const lines = part.split(/\r?\n/);
+      const header = (lines.shift() || "").replace(/=+\s*$/, "").trim().toLowerCase();
+      let label = null;
+      while (lines.length) {
+        const m = lines[0].match(/^(label|caption)[ \t]*:[ \t]*(.*)$/);
+        if (m) { if (m[1] === "label") label = m[2].trim(); lines.shift(); }
+        else break;
+      }
+      return { id: header, label, body: lines };
+    });
+  }
+  for (const b of blocks) {
+    const segs = [];
+    let cur = { heading: null, lines: [] };
+    for (const line of b.body) {
+      if (/^# /.test(line)) { segs.push(cur); cur = { heading: line.slice(2).trim(), lines: [line] }; }
+      else cur.lines.push(line);
+    }
+    segs.push(cur);
+    const pre = segs.shift();
+    const preHas = pre.lines.some(l => l.trim() !== "");
+    if (segs.length === 0) {
+      addPage(b.id, b.label, pre.lines);
+      continue;
+    }
+    if (preHas) addPage(b.id || "home", b.label, pre.lines);
+    segs.forEach((s, i) => {
+      if (i === 0 && !preHas && b.id) addPage(b.id, b.label || s.heading.toLowerCase(), s.lines);
+      else addPage(canonId(s.heading), s.heading.toLowerCase(), s.lines);
+    });
   }
   return { pages, order };
 }
-
 /* ---------- STATE ---------- */
 let RU = parseContent(FALLBACK_RU);
 let EN = parseContent(FALLBACK_EN);
@@ -391,8 +450,8 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function primary()  { return LANG === "ru" ? RU : EN; }
 function fallback() { return LANG === "ru" ? EN : RU; }
 function pageIds() {
-  const seen = new Set(RU.order);
-  return RU.order.concat(EN.order.filter(id => !seen.has(id)));
+  const p = primary();
+  return p.order.length ? p.order : fallback().order;
 }
 function getPage(id) {
   const p = primary().pages[id], f = fallback().pages[id];
@@ -431,12 +490,41 @@ function buildChips() {
 }
 
 /* ---------- RENDER ---------- */
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function mdInline(s) {
+  s = esc(s);
+  s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  s = s.replace(/\*([^*\s][^*]*)\*/g, "<i>$1</i>");
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/&lt;([^\s@&]+@[^\s&]+)&gt;/g, '<a href="mailto:$1">$1</a>');
+  s = s.replace(/&lt;(https?:\/\/[^\s&]+)&gt;/g,
+    '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
 function lineEl(text, delay) {
   const d = document.createElement("div");
   d.className = "line";
-  if (text.startsWith("# ")) { d.classList.add("h"); text = text.slice(2); }
-  else if (text.startsWith("— ") || text.startsWith("-- ")) { d.classList.add("dim"); }
-  d.textContent = text === "" ? "\u00a0" : text;
+  let html = null;
+  if (/^(---|\*\*\*|___)\s*$/.test(text)) {
+    d.classList.add("dim");
+    d.textContent = "\u2500".repeat(24);
+  } else if (text.startsWith("### ")) { d.classList.add("h", "h3"); html = mdInline(text.slice(4)); }
+  else if (text.startsWith("## "))    { d.classList.add("h", "h2"); html = mdInline(text.slice(3)); }
+  else if (text.startsWith("# "))     { d.classList.add("h");       html = mdInline(text.slice(2)); }
+  else if (text.startsWith("- ") || text.startsWith("* ")) {
+    d.classList.add("li"); html = "\u00b7 " + mdInline(text.slice(2));
+  }
+  else if (text.startsWith("> "))     { d.classList.add("dim"); html = mdInline(text.slice(2)); }
+  else if (text.startsWith("\u2014 ") || text.startsWith("-- ")) {
+    d.classList.add("dim"); html = mdInline(text);
+  }
+  else if (text === "") { d.textContent = "\u00a0"; }
+  else { html = mdInline(text); }
+  if (html !== null) d.innerHTML = html;
   d.style.animationDelay = delay + "ms";
   return d;
 }
@@ -468,8 +556,19 @@ async function renderLines(lines, mySeq, startDelay) {
   }
   return delay;
 }
+const ART_HINTS = [
+  [/путешеств|travel|поездк|дорог/i, "projects"],
+  [/маркетинг|marketing|блог|медиа|соцсет/i, "langs"],
+  [/муз|guitar|гитар/i, "code"]
+];
+function artFor(id, label) {
+  if (ART[id]) return id;
+  const probe = id + " " + (label || "");
+  for (const [re, key] of ART_HINTS) if (re.test(probe)) return key;
+  return null;
+}
 function addTailpiece(artKey, delay) {
-  if (!ART[artKey]) return;
+  if (!artKey || !ART[artKey]) return;
   const wrap = document.createElement("div");
   wrap.className = "tailpiece";
   wrap.style.animationDelay = delay + "ms";
@@ -490,7 +589,7 @@ async function showPage(id) {
   if (mySeq !== seq) return;
   const d = await renderLines(page.lines, mySeq, 60);
   if (mySeq !== seq) return;
-  addTailpiece(id, d + 250);
+  addTailpiece(artFor(id, page.label), d + 250);
   term.scrollTop = 0;
 }
 async function showSystem(lines) {
@@ -508,6 +607,7 @@ function runCommand(raw) {
   const target = ALIASES[c];
   if (target === ":help")  { showSystem(HELP); return; }
   if (target === ":hire")  { showSystem(HIRE); return; }
+  if (target === ":status"){ showSystem(statusLines()); return; }
   if (target === ":theme") { cycleTheme(); return; }
   if (target === ":lang")  { toggleLang(); return; }
   if (target) { showPage(target); return; }
@@ -536,12 +636,30 @@ cmdInput.addEventListener("keydown", e => {
 });
 
 /* ---------- BOOT ---------- */
+const LOAD_STATUS = { "content.ru.md": "checking\u2026", "content.en.md": "checking\u2026" };
 async function loadMD(name) {
   try {
     const res = await fetch(name, { cache: "no-store" });
-    if (!res.ok) return null;
-    return parseContent(await res.text());
-  } catch (e) { return null; }
+    if (!res.ok) { LOAD_STATUS[name] = "NOT FOUND \u2014 using built-in text"; return null; }
+    const parsed = parseContent(await res.text());
+    if (!parsed.order.length) {
+      LOAD_STATUS[name] = "found, but NO '=== page' separators \u2014 using built-in text";
+      return null;
+    }
+    LOAD_STATUS[name] = "loaded \u00b7 pages: " + parsed.order.join(", ");
+    return parsed;
+  } catch (e) { LOAD_STATUS[name] = "NOT FOUND \u2014 using built-in text"; return null; }
+}
+function statusLines() {
+  return [
+    "# status",
+    "",
+    "content.ru.md \u00b7 " + LOAD_STATUS["content.ru.md"],
+    "content.en.md \u00b7 " + LOAD_STATUS["content.en.md"],
+    "",
+    "> files must sit next to index.html in the repo,",
+    "> and each page must start with a line like: === home"
+  ];
 }
 async function boot() {
   const [ru, en] = await Promise.all([loadMD("content.ru.md"), loadMD("content.en.md")]);
@@ -549,7 +667,7 @@ async function boot() {
   if (en && en.order.length) EN = en;
   applyTheme();
   applyLang();
-  showPage("home");
+  showPage(pageIds()[0] || "home");
 }
 boot();
 </script>

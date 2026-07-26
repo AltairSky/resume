@@ -3,52 +3,31 @@ label: home
 
 # Altair
 
-Test text: a couple of lines about who I am.
-Say: languages, code, philosophy — that kind of thing.
+Welcome to my resume!
 
-— replace this text in content.en.md —
+### Skills
 
-=== code
-label: code
+- Fluent in English
+- Can write code in Python
 
 # Code
 
-Test text about Python: automation,
-web scraping, statistics.
+- Programmed in Python before the AI era
+- Wrote programs that fully automated my business
+- Worked on web automation and statistical data processing
 
-Test text: what I can do, tools I've used,
-an example of a problem I solved.
+# Marketing
 
-=== langs
-label: languages
+Grew and monetized Twitter pages in the adult niche from scratch, reaching about 800,000 followers in total
 
-# Languages
+# Travels
 
-русский · native
-english · fluent
-čeština · learning, roughly B1–B2
+Traveled through South Asia for two years with no money
 
-Test text: teaching, Preply,
-linguistics as a passion.
-
-=== projects
-label: projects
-
-# Projects
-
-Test text: language games,
-learning pages, this site.
-
-Test text: link · description
-Test text: link · description
-
-=== contact
-label: contact
+Volunteered along the way — teaching English and working in hostels
 
 # Contact
 
-email    · test@example.kz
-telegram · @test
-github   · altairsky
+email · <altairph@gmail.com>
 
-Test text: a short closing invitation.
+phone · +77074119427
