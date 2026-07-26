@@ -1,545 +1,555 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>altair@resume:~</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>altair — terminal</title>
 <style>
-  /* ============ THEMES ============ */
+  :root {
+    --font: "JetBrains Mono", "Cascadia Mono", "Fira Mono", "Menlo", "Consolas", monospace;
+  }
   body[data-theme="amber"] {
-    --bg: #0a0500;
-    --term-bg: rgba(16, 9, 2, 0.92);
-    --fg: #ffb643;
-    --fg-dim: #8a6226;
-    --accent: #ffe9c9;
-    --bright: #fff4e0;
-    --err: #ff6b5e;
-    --border: rgba(255, 182, 67, 0.25);
-    --glow: 0 0 6px rgba(255, 182, 67, 0.4);
-    --glow-strong: 0 0 12px rgba(255, 182, 67, 0.55);
-    --chip-bg: rgba(255, 182, 67, 0.07);
-    --chip-bg-hover: rgba(255, 182, 67, 0.16);
-    --scanlines: 1;
+    --bg: #16100a; --panel: #1d150c; --ink: #ffb000; --dim: #9a6c10;
+    --bright: #ffd569; --accent: #ff8c1a; --glow: rgba(255,176,0,.45);
+    --bar: #241a0e; --chipbg: #241a0e; --scan: rgba(255,176,0,.03);
   }
   body[data-theme="green"] {
-    --bg: #04080a;
-    --term-bg: rgba(4, 12, 10, 0.9);
-    --fg: #4affa0;
-    --fg-dim: #2a8f5e;
-    --accent: #ffc26e;
-    --bright: #d8f3e6;
-    --err: #ff6b6b;
-    --border: rgba(74, 255, 160, 0.22);
-    --glow: 0 0 6px rgba(74, 255, 160, 0.35);
-    --glow-strong: 0 0 12px rgba(74, 255, 160, 0.55);
-    --chip-bg: rgba(74, 255, 160, 0.06);
-    --chip-bg-hover: rgba(74, 255, 160, 0.15);
-    --scanlines: 1;
+    --bg: #050d08; --panel: #08120b; --ink: #4affa0; --dim: #1f7a4d;
+    --bright: #b8ffd9; --accent: #7dffc4; --glow: rgba(74,255,160,.45);
+    --bar: #0a1810; --chipbg: #0a1810; --scan: rgba(74,255,160,.03);
+  }
+  body[data-theme="ice"] {
+    --bg: #060b14; --panel: #081120; --ink: #7fd4ff; --dim: #2e6d94;
+    --bright: #d8f3ff; --accent: #4aa8ff; --glow: rgba(127,212,255,.45);
+    --bar: #0a1626; --chipbg: #0a1626; --scan: rgba(127,212,255,.03);
+  }
+  body[data-theme="plasma"] {
+    --bg: #0c0714; --panel: #130a20; --ink: #c792ff; --dim: #6b4a99;
+    --bright: #ecd9ff; --accent: #ff7ad9; --glow: rgba(199,146,255,.45);
+    --bar: #180d28; --chipbg: #180d28; --scan: rgba(199,146,255,.03);
+  }
+  body[data-theme="ruby"] {
+    --bg: #120608; --panel: #1c080c; --ink: #ff6b7a; --dim: #8f3040;
+    --bright: #ffc4cb; --accent: #ffa03c; --glow: rgba(255,107,122,.45);
+    --bar: #240a10; --chipbg: #240a10; --scan: rgba(255,107,122,.03);
   }
   body[data-theme="paper"] {
-    --bg: #d9d2c2;
-    --term-bg: #efe9db;
-    --fg: #33302a;
-    --fg-dim: #8c8474;
-    --accent: #a33327;
-    --bright: #14120e;
-    --err: #a33327;
-    --border: rgba(51, 48, 42, 0.35);
-    --glow: none;
-    --glow-strong: none;
-    --chip-bg: rgba(51, 48, 42, 0.05);
-    --chip-bg-hover: rgba(51, 48, 42, 0.12);
-    --scanlines: 0;
+    --bg: #efe8d8; --panel: #f6f0e2; --ink: #2c2822; --dim: #8a8272;
+    --bright: #000; --accent: #8a4b2a; --glow: rgba(0,0,0,0);
+    --bar: #e4dcc8; --chipbg: #e4dcc8; --scan: rgba(0,0,0,.015);
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
     background: var(--bg);
-    font-family: "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
-    color: var(--fg);
-    overflow: hidden;
-    transition: background .4s ease;
-  }
-
-  /* CRT overlays — hidden on paper theme */
-  .fx-scan, .fx-vignette { position: fixed; inset: 0; pointer-events: none; transition: opacity .4s; }
-  .fx-scan {
-    z-index: 5;
-    background: repeating-linear-gradient(to bottom,
-      rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.10) 3px 4px);
-  }
-  .fx-vignette {
-    z-index: 6;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,0.45) 100%);
-  }
-  body[data-theme="paper"] .fx-scan,
-  body[data-theme="paper"] .fx-vignette { opacity: 0; }
-
-  .wrap {
-    position: relative; z-index: 2; height: 100%;
+    color: var(--ink);
+    font-family: var(--font);
+    font-size: clamp(14px, 3.6vw, 16px);
+    line-height: 1.55;
     display: flex; flex-direction: column;
-    max-width: 760px; margin: 0 auto;
-    padding: clamp(8px, 2.5vh, 24px) clamp(6px, 2vw, 18px);
+    transition: background .35s, color .35s;
+    -webkit-font-smoothing: antialiased;
   }
-  .term {
-    flex: 1; display: flex; flex-direction: column; min-height: 0;
-    background: var(--term-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 0 44px rgba(0,0,0,0.15), inset 0 0 70px rgba(0,0,0,0.08);
-    overflow: hidden;
-    transition: background .4s ease, border-color .4s ease;
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background: repeating-linear-gradient(0deg, var(--scan) 0 1px, transparent 1px 3px);
   }
-  body[data-theme="paper"] .term {
-    box-shadow: 0 4px 24px rgba(51,48,42,.18);
-  }
+  body[data-theme="paper"]::after { background: none; }
 
-  .bar {
+  #bar {
     display: flex; align-items: center; gap: 8px;
-    padding: 10px 14px; flex-shrink: 0;
-    border-bottom: 1px solid var(--border);
+    padding: 10px 12px;
+    background: var(--bar);
+    border-bottom: 1px solid var(--dim);
+    position: sticky; top: 0; z-index: 20;
   }
-  .dot { width: 11px; height: 11px; border-radius: 50%; opacity: .8; }
-  .dot.r { background: #ff5f56; } .dot.y { background: #ffbd2e; } .dot.g { background: #27c93f; }
-  body[data-theme="paper"] .dot { background: var(--fg-dim); opacity: .5; }
-  .bar-title { flex: 1; text-align: center; font-size: 12px; color: var(--fg-dim); user-select: none; }
-  #themeBtn {
-    background: none; border: 1px solid var(--border);
-    color: var(--fg); font-family: inherit; font-size: 12px;
-    padding: 3px 10px; border-radius: 4px; cursor: pointer;
-    transition: all .15s;
+  .dots { display: flex; gap: 5px; margin-right: 4px; }
+  .dots span { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--dim); opacity: .8; }
+  #bar .title { flex: 1; color: var(--dim); font-size: .8em; letter-spacing: .05em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .barbtn {
+    font-family: var(--font); font-size: .78em;
+    background: transparent; color: var(--ink);
+    border: 1px solid var(--dim); border-radius: 4px;
+    padding: 4px 9px; cursor: pointer; white-space: nowrap;
   }
-  #themeBtn:hover, #themeBtn:focus-visible { background: var(--chip-bg-hover); outline: none; }
+  .barbtn:hover, .barbtn:focus-visible { color: var(--bright); border-color: var(--ink); outline: none; }
 
-  #page {
-    flex: 1; min-height: 0; overflow-y: auto;
-    padding: clamp(14px, 3.5vh, 30px) clamp(14px, 4.5vw, 34px) 16px;
-    display: flex; flex-direction: column;
-    scrollbar-width: thin; scrollbar-color: var(--fg-dim) transparent;
+  #term {
+    flex: 1; overflow-y: auto; padding: 18px 16px 26px;
+    max-width: 720px; width: 100%; margin: 0 auto;
   }
-  #page::-webkit-scrollbar { width: 6px; }
-  #page::-webkit-scrollbar-thumb { background: var(--fg-dim); border-radius: 3px; }
-
-  .cmdline { font-size: clamp(13px, 3.4vw, 15px); margin-bottom: .9em; }
-  .prompt-sym { color: var(--accent); }
-  .cmd { color: var(--bright); }
-
-  .line {
-    white-space: pre-wrap; word-break: break-word;
-    text-shadow: var(--glow);
-    font-size: clamp(15px, 4vw, 17.5px);
-    line-height: 1.75;
-    opacity: 0; transform: translateY(10px);
-    animation: rise .45s ease forwards;
-  }
-  .line.head {
-    color: var(--accent);
-    font-size: clamp(17px, 4.8vw, 22px);
-    letter-spacing: .18em;
-    margin-bottom: .5em;
-  }
-  .line.gap { margin-top: .8em; }
-  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
-
-  .dim { color: var(--fg-dim); text-shadow: none; }
-  .amber { color: var(--accent); }
-  .white { color: var(--bright); }
-  .err { color: var(--err); }
-  a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-
-  /* ---- illustration: bottom of the page ---- */
-  .art-block {
-    margin-top: auto;           /* pushes art to the bottom of the page area */
-    padding-top: 1.6em;
-  }
-  .art {
-    display: block;
-    text-align: center;
-    color: var(--fg);
-    font-size: clamp(8px, 2.35vw, 14px);
-    line-height: 1.18;
-    text-shadow: var(--glow-strong);
-    white-space: pre;
-    opacity: 0; transform: scale(.96) translateY(8px);
-    animation: artIn .7s ease forwards;
-  }
-  @keyframes artIn { to { opacity: 1; transform: scale(1) translateY(0); } }
-  .art-caption {
-    text-align: center;
-    color: var(--fg-dim);
-    font-size: clamp(11px, 3vw, 12.5px);
-    margin-top: .6em;
-    opacity: 0; animation: rise .5s ease .3s forwards;
-  }
-
+  .cmdline { color: var(--dim); margin: 4px 0 12px; }
+  .cmdline .ps { color: var(--accent); }
+  .cmdline .typed { color: var(--bright); }
   .cursor {
-    display: inline-block; width: .6em; height: 1.1em;
-    background: var(--fg); vertical-align: text-bottom;
-    box-shadow: var(--glow);
+    display: inline-block; width: .55em; height: 1.05em;
+    background: var(--ink); vertical-align: text-bottom;
     animation: blink 1s steps(1) infinite;
   }
   @keyframes blink { 50% { opacity: 0; } }
 
-  #inputRow {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px clamp(12px, 4vw, 24px) 4px; flex-shrink: 0;
-    border-top: 1px solid var(--border);
+  .line {
+    opacity: 0; transform: translateY(6px);
+    animation: rise .45s ease forwards;
+    min-height: 1.55em; overflow-wrap: break-word;
   }
-  #cmdInput {
-    flex: 1; background: none; border: none; outline: none;
-    color: var(--bright); font-family: inherit;
-    font-size: clamp(13px, 3.4vw, 15px);
-    caret-color: var(--fg);
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .line.h {
+    color: var(--bright); font-weight: 700;
+    letter-spacing: .04em; margin: 10px 0 6px;
+    text-shadow: 0 0 12px var(--glow);
   }
-  #chips {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    padding: 8px clamp(12px, 4vw, 24px) 14px; flex-shrink: 0;
+  .line.dim { color: var(--dim); }
+  .line.sys { color: var(--accent); }
+
+  .tailpiece {
+    margin: 34px 0 14px; text-align: center;
+    opacity: 0; animation: artin .8s ease forwards;
   }
+  @keyframes artin { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+  .tailpiece pre {
+    display: inline-block; text-align: left;
+    font-family: var(--font);
+    font-size: clamp(9px, 2.9vw, 16px);
+    line-height: 1.25;
+    color: var(--ink);
+    text-shadow: 0 0 10px var(--glow);
+    animation: breathe 7s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100% { opacity: .78; } 50% { opacity: 1; } }
+  body[data-theme="paper"] .tailpiece pre { animation: none; text-shadow: none; }
+
+  #dock {
+    position: sticky; bottom: 0; z-index: 20;
+    background: var(--bar);
+    border-top: 1px solid var(--dim);
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+  #inputrow { display: flex; align-items: center; gap: 8px; max-width: 720px; margin: 0 auto 8px; }
+  #inputrow .ps { color: var(--accent); }
+  #cmd {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--bright); font-family: var(--font); font-size: 1em;
+    caret-color: var(--accent);
+  }
+  #cmd::placeholder { color: var(--dim); opacity: .7; }
+  #chips { display: flex; flex-wrap: wrap; gap: 7px; max-width: 720px; margin: 0 auto; }
   .chip {
-    background: var(--chip-bg);
-    border: 1px solid var(--fg-dim);
-    color: var(--fg); font-family: inherit;
-    font-size: clamp(12px, 3.2vw, 13px);
-    padding: 7px 15px; border-radius: 999px;
-    cursor: pointer; transition: all .15s;
+    font-family: var(--font); font-size: .82em;
+    background: var(--chipbg); color: var(--ink);
+    border: 1px solid var(--dim); border-radius: 999px;
+    padding: 5px 13px; cursor: pointer;
   }
-  .chip:hover, .chip:focus-visible {
-    background: var(--chip-bg-hover);
-    border-color: var(--fg); outline: none;
+  .chip:hover, .chip:focus-visible { color: var(--bright); border-color: var(--ink); outline: none; }
+  .chip.on {
+    color: var(--bg); background: var(--ink); border-color: var(--ink);
+    text-shadow: none; font-weight: 700;
   }
-  .chip.active-page {
-    background: var(--chip-bg-hover); border-color: var(--fg);
-    color: var(--bright);
-  }
-  .chip.accent { color: var(--accent); border-color: var(--accent); }
 
   @media (prefers-reduced-motion: reduce) {
+    .line, .tailpiece { animation-duration: .01s !important; }
+    .tailpiece pre { animation: none; }
     .cursor { animation: none; }
-    .line, .cmdline, .art, .art-caption { animation: none; opacity: 1; transform: none; }
   }
 </style>
 </head>
 <body data-theme="amber">
-<div class="fx-scan"></div>
-<div class="fx-vignette"></div>
 
-<div class="wrap">
-  <div class="term">
-    <div class="bar">
-      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-      <span class="bar-title">altair@resume: ~</span>
-      <button id="themeBtn" type="button" title="switch theme">◐ theme</button>
-    </div>
-    <div id="page" aria-live="polite"></div>
-    <div id="inputRow">
-      <span class="prompt-sym">$</span>
-      <input id="cmdInput" type="text" autocomplete="off" autocapitalize="off"
-             spellcheck="false" placeholder="type a command, or tap below" aria-label="terminal command input">
-    </div>
-    <div id="chips" role="group" aria-label="sections">
-      <button class="chip" data-cmd="home">home</button>
-      <button class="chip" data-cmd="code">code</button>
-      <button class="chip" data-cmd="languages">languages</button>
-      <button class="chip" data-cmd="projects">projects</button>
-      <button class="chip accent" data-cmd="contact">contact</button>
-    </div>
+<div id="bar">
+  <div class="dots"><span></span><span></span><span></span></div>
+  <div class="title">altair@sky:~</div>
+  <button class="barbtn" id="themebtn" type="button"></button>
+  <button class="barbtn" id="langbtn" type="button"></button>
+</div>
+
+<div id="term" aria-live="polite"></div>
+
+<div id="dock">
+  <div id="inputrow">
+    <span class="ps">&gt;</span>
+    <input id="cmd" autocomplete="off" autocapitalize="none" spellcheck="false"
+           placeholder="type a command… (help)">
   </div>
+  <div id="chips"></div>
 </div>
 
 <script>
-/* ============================================================
-   CONTENT — everything a visitor reads lives in this object.
-   If a file named content.json sits next to this html file,
-   it is loaded instead, so you can edit text without touching
-   this file at all. Same structure as DEFAULT_CONTENT below.
-   ============================================================ */
-const DEFAULT_CONTENT = {
-  pages: {
-    home: {
-      cmd: "./hello.sh",
-      lines: [
-        ["A L T A I R", "head"],
-        ["Test text. A couple of plain sentences about", ""],
-        ["who I am will go here. No resume language.", ""],
-        ["", "gap"],
-        ["Tap the buttons below to look around.", "dim"]
-      ]
-    },
-    code: {
-      cmd: "cat code.txt",
-      lines: [
-        ["CODE", "head"],
-        ["Test text about Python. Bots, scripts,", ""],
-        ["automation — a few honest lines about what", ""],
-        ["I've actually built and how.", ""],
-        ["", "gap"],
-        ["Maybe one example with a number in it.", "dim"]
-      ]
-    },
-    languages: {
-      cmd: "cat languages.txt",
-      lines: [
-        ["LANGUAGES", "head"],
-        ["Test text. Russian, English, Czech —", ""],
-        ["what I speak, what I teach, how it works.", ""],
-        ["", "gap"],
-        ["Something about tutoring goes here too.", "dim"]
-      ]
-    },
-    projects: {
-      cmd: "ls projects/",
-      lines: [
-        ["PROJECTS", "head"],
-        ["01 · test project one", "amber"],
-        ["Two plain sentences about it.", ""],
-        ["", "gap"],
-        ["02 · test project two", "amber"],
-        ["Two plain sentences about it.", ""],
-        ["", "gap"],
-        ["03 · test project three", "amber"],
-        ["Two plain sentences about it.", ""]
-      ]
-    },
-    contact: {
-      cmd: "./contact.sh",
-      lines: [
-        ["CONTACT", "head"],
-        ["email     test@example.com", "amber"],
-        ["telegram  @testhandle", "amber"],
-        ["", "gap"],
-        ["One line inviting people to write.", "dim"]
-      ]
+/* =====================================================================
+   ВЕСЬ ТЕКСТ ЖИВЁТ В content.ru.md И content.en.md — редактируй их.
+   Ниже — встроенная резервная копия на случай, если файлы не
+   загрузились (например, при открытии HTML локально).
+   ===================================================================== */
+
+const FALLBACK_RU = `
+=== home
+label: дом
+
+# Альтаир
+
+Тестовый текст: пара строк о том, кто я.
+Например: языки, код, философия — в таком духе.
+
+— заменить этот текст в content.ru.md —
+
+=== code
+label: код
+
+# Код
+
+Тестовый текст про Python: автоматизация,
+веб-скрейпинг, статистика.
+
+Тестовый текст: что умею, чем пользовался,
+пример задачи, которую решал.
+
+=== langs
+label: языки
+
+# Языки
+
+русский · родной
+english · свободно
+čeština · учу, примерно B1–B2
+
+Тестовый текст: преподавание, Preply,
+лингвистика как страсть.
+
+=== projects
+label: проекты
+
+# Проекты
+
+Тестовый текст: языковые игры,
+обучающие страницы, этот сайт.
+
+Тестовый текст: ссылка · описание
+Тестовый текст: ссылка · описание
+
+=== contact
+label: контакт
+
+# Контакт
+
+почта    · тест@пример.кз
+telegram · @тест
+github   · altairsky
+
+Тестовый текст: короткая фраза-приглашение.
+`;
+
+const FALLBACK_EN = `
+=== home
+label: home
+
+# Altair
+
+Test text: a couple of lines about who I am.
+Say: languages, code, philosophy — that kind of thing.
+
+— replace this text in content.en.md —
+
+=== code
+label: code
+
+# Code
+
+Test text about Python: automation,
+web scraping, statistics.
+
+Test text: what I can do, tools I've used,
+an example of a problem I solved.
+
+=== langs
+label: languages
+
+# Languages
+
+русский · native
+english · fluent
+čeština · learning, roughly B1–B2
+
+Test text: teaching, Preply,
+linguistics as a passion.
+
+=== projects
+label: projects
+
+# Projects
+
+Test text: language games,
+learning pages, this site.
+
+Test text: link · description
+Test text: link · description
+
+=== contact
+label: contact
+
+# Contact
+
+email    · test@example.kz
+telegram · @test
+github   · altairsky
+
+Test text: a short closing invitation.
+`;
+
+/* ---------- terminal commands: always English ---------- */
+const CMDS = {
+  home: "whoami",
+  code: "cat code/",
+  langs: "ls languages/",
+  projects: "ls projects/",
+  contact: "ping altair"
+};
+function cmdFor(id) { return CMDS[id] || ("cat " + id + "/"); }
+
+/* ---------- ASCII LANDSCAPES (tailpieces) ---------- */
+const ART = {"home": "\n                            \\ | /\n            v             -- (_) --\n       v         v          / | \\\n                   /\\\n                  /..\\\n         /\\      /    \\      /\\\n        /..\\    /      \\    /..\\\n       /    \\  /        \\  /    \\      /\\\n      /      \\/          \\/      \\    /..\\\n   /\\/                            \\  /    \\\n__/                                \\/      \\__\n", "code": "\n       *          .              +\n   .        +          *      .\n           .   _.-\"\"-._\n      *       /  o   . \\      *     .\n   +         |     .    |\n              \\ o    . /     *\n        .      '-.__.-'   .        +\n                              *\n     *      .        *          .\n       _                         _\n    __/ \\     /\\       /\\    ___/ \\___\n __/     \\   /||\\     /||\\  /         \\__\n/         \\_/ || \\___/ || \\/             \\\n", "langs": "\n                   .--~~--.\n         v        (        )          v  v\n   v               `--__--'\n              v                  v\n                          v\n     .          .         .          .\n  _______________________________________\n    \\|/    ,   \\|/   .  ,,   \\|/   ,  \\|/\n   ,,,,,, ., ,,,,,,,  ,, ,.,,,,,,,., ,,,,,\n    ,  ., ,.  ,, . ,   ,, ., , .  ,, .,\n", "projects": "\n          .--.         ~          v\n         (    )             v\n          `--'       |\\\n                     | \\\n                     |  \\\n                     |   \\\n                 /|  |    \\\n                / |  |     \\\n               /  |  |      \\\n              /___|  |_______\\\n           __________|______________\n      ~~ ~ \\    o    o    o        / ~ ~~\n   ~   ~~   \\_____________________/   ~   ~~\n ~~     ~  ~~    ~      ~      ~~    ~     ~\n", "contact": "\n      .        *         .       *\n   ____________________________________\n               /    .    \\         +\n              /     |     \\       -+-\n       |     /      .      \\       |\n      -+-   /       |       \\      |\n       |   /        .        \\     |\n       |  /         |         \\    |\n       | /          .          \\   |\n       |/           |           \\  |\n"};
+
+/* ---------- chrome strings: always English ---------- */
+const THEMES = ["amber", "green", "ice", "plasma", "ruby", "paper"];
+const HELP = [
+  "# commands",
+  "",
+  "home · code · languages · projects · contact",
+  "theme · switch color theme",
+  "lang  · switch language (RU/EN)",
+  "help  · this list",
+  "",
+  "…or just tap the buttons below."
+];
+const HIRE = [
+  "# sudo hire",
+  "",
+  "[sudo] password accepted.",
+  "checking candidate… ok",
+  "common sense… found",
+  "sense of humor… detected",
+  "",
+  "recommendation: hire. see contact."
+];
+
+/* aliases -> page id or action (English canon; Russian accepted quietly) */
+const ALIASES = {
+  "home": "home", "дом": "home",
+  "code": "code", "код": "code",
+  "languages": "langs", "langs": "langs", "языки": "langs",
+  "projects": "projects", "проекты": "projects",
+  "contact": "contact", "контакт": "contact", "контакты": "contact",
+  "help": ":help", "помощь": ":help", "?": ":help",
+  "theme": ":theme", "тема": ":theme",
+  "lang": ":lang", "язык": ":lang", "en": ":lang", "ru": ":lang",
+  "sudo hire": ":hire"
+};
+
+/* ---------- markdown-ish parser ---------- */
+/* формат: блоки начинаются со строки "=== id";
+   затем необязательные строки "label: …" и "caption: …";
+   всё остальное до следующего "===" — текст страницы как есть. */
+function parseContent(text) {
+  const pages = {};
+  const order = [];
+  const parts = text.split(/^===[ \t]*/m).slice(1);
+  for (const part of parts) {
+    const lines = part.split(/\r?\n/);
+    const id = (lines.shift() || "").trim();
+    if (!id) continue;
+    const page = { label: null, caption: null, lines: [] };
+    while (lines.length) {
+      const m = lines[0].match(/^(label|caption)[ \t]*:[ \t]*(.*)$/);
+      if (m) { page[m[1]] = m[2].trim(); lines.shift(); }
+      else break;
     }
-  },
-  captions: {
-    home: "a field, for no reason",
-    code: "the cat sleeps while the bots work",
-    languages: "the owl knows three languages",
-    projects: "a whale, mid-thought",
-    contact: "snail mail, but faster"
+    while (lines.length && lines[0].trim() === "") lines.shift();
+    while (lines.length && lines[lines.length - 1].trim() === "") lines.pop();
+    page.lines = lines;
+    pages[id] = page;
+    order.push(id);
   }
-};
-
-let CONTENT = DEFAULT_CONTENT;
-
-/* ================= ILLUSTRATIONS ================= */
-const ART = {
-home: String.raw`
-          wWWWw               wWWWw
-    vVVVv (___)     wWWWw     (___)  vVVVv
-    (___)  ~Y~      (___)      ~Y~   (___)
-     ~Y~   \|        ~Y~        |/    ~Y~
-     \|   \ |/      \| /      \\|    \ |/
-    \\|// \\|//    \\\|///    \\|// \\\|///
-  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^`,
-
-code: String.raw`
-        |\      _,,,---,,_
-  zzZ  /,'.-'"'    -.  ;-;;,_
-      |,4-  ) )-,_..;\ (  ,'-'
-     '---''(_/--'  '-'\_)`,
-
-languages: String.raw`
-          ,_______,
-          /       \
-         |  ,-. ,-.|
-         |  (o) (o)|
-          \    <   |
-           \  __  /
-           /'-..-'\
-          / |    | \
-         ;  |    |  ;
-         |  |    |  |
-          \_|    |_/
-           (__,,__)`,
-
-projects: String.raw`
-                 .
-                ":"
-              ___:____     |"\/"|
-            ,'        '.    \  /
-            |  O        \___/  |
-          ~^~^~^~^~^~^~^~^~^~^~^~^~`,
-
-contact: String.raw`
-         .----.   @   @
-        / .-"-.'.  \v/
-        | | '\ \ \_/ )
-      ,-\ '-.' /.'  /
-     '---'----'----'`
-};
-
-/* ================= THEMES ================= */
-const THEMES = ['amber', 'green', 'paper'];
-function setTheme(name) {
-  if (!THEMES.includes(name)) return false;
-  document.body.dataset.theme = name;
-  return true;
-}
-document.getElementById('themeBtn').addEventListener('click', () => {
-  const cur = document.body.dataset.theme;
-  setTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
-});
-
-/* ================= ENGINE ================= */
-const page = document.getElementById('page');
-const cmdInput = document.getElementById('cmdInput');
-const chips = document.getElementById('chips');
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-let busy = false;
-
-function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-function setActiveChip(name) {
-  document.querySelectorAll('.chip').forEach(c =>
-    c.classList.toggle('active-page', c.dataset.cmd === name));
+  return { pages, order };
 }
 
-async function typeCmdLine(container, cmd) {
-  const div = document.createElement('div');
-  div.className = 'cmdline';
-  div.innerHTML = '<span class="prompt-sym">$ </span>';
-  const span = document.createElement('span');
-  span.className = 'cmd';
-  div.appendChild(span);
-  const cur = document.createElement('span');
-  cur.className = 'cursor';
-  div.appendChild(cur);
-  container.appendChild(div);
-  if (reducedMotion) { span.textContent = cmd; cur.remove(); return; }
-  for (const c of cmd) {
-    span.textContent += c;
-    await new Promise(r => setTimeout(r, 30 + Math.random() * 28));
+/* ---------- STATE ---------- */
+let RU = parseContent(FALLBACK_RU);
+let EN = parseContent(FALLBACK_EN);
+let LANG = localStorage.getItem("resume-lang") || "ru";
+let THEME = localStorage.getItem("resume-theme") || "amber";
+if (!THEMES.includes(THEME)) THEME = "amber";
+let CURRENT = "home";
+let seq = 0;
+
+const term = document.getElementById("term");
+const chips = document.getElementById("chips");
+const cmdInput = document.getElementById("cmd");
+const themeBtn = document.getElementById("themebtn");
+const langBtn = document.getElementById("langbtn");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function primary()  { return LANG === "ru" ? RU : EN; }
+function fallback() { return LANG === "ru" ? EN : RU; }
+function pageIds() {
+  const seen = new Set(RU.order);
+  return RU.order.concat(EN.order.filter(id => !seen.has(id)));
+}
+function getPage(id) {
+  const p = primary().pages[id], f = fallback().pages[id];
+  if (!p && !f) return null;
+  return {
+    label:   (p && p.label)   || (f && f.label)   || id,
+    caption: (p && p.caption) || (f && f.caption) || "",
+    lines:   (p && p.lines && p.lines.length) ? p.lines : ((f && f.lines) || [])
+  };
+}
+
+/* ---------- CHROME ---------- */
+function applyTheme() {
+  document.body.dataset.theme = THEME;
+  themeBtn.textContent = "theme: " + THEME;
+  localStorage.setItem("resume-theme", THEME);
+}
+function applyLang() {
+  document.documentElement.lang = LANG;
+  langBtn.textContent = LANG === "ru" ? "EN" : "RU";
+  localStorage.setItem("resume-lang", LANG);
+  buildChips();
+}
+function buildChips() {
+  chips.innerHTML = "";
+  for (const id of pageIds()) {
+    const page = getPage(id);
+    if (!page) continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip" + (id === CURRENT ? " on" : "");
+    b.textContent = page.label;
+    b.onclick = () => showPage(id);
+    chips.appendChild(b);
   }
-  await new Promise(r => setTimeout(r, 160));
+}
+
+/* ---------- RENDER ---------- */
+function lineEl(text, delay) {
+  const d = document.createElement("div");
+  d.className = "line";
+  if (text.startsWith("# ")) { d.classList.add("h"); text = text.slice(2); }
+  else if (text.startsWith("— ") || text.startsWith("-- ")) { d.classList.add("dim"); }
+  d.textContent = text === "" ? "\u00a0" : text;
+  d.style.animationDelay = delay + "ms";
+  return d;
+}
+async function typeCommand(cmdText, mySeq) {
+  const row = document.createElement("div");
+  row.className = "cmdline";
+  const ps = document.createElement("span");
+  ps.className = "ps"; ps.textContent = "$ ";
+  const typed = document.createElement("span");
+  typed.className = "typed";
+  const cur = document.createElement("span");
+  cur.className = "cursor";
+  row.append(ps, typed, cur);
+  term.appendChild(row);
+  if (reduced) { typed.textContent = cmdText; cur.remove(); return; }
+  for (const ch of cmdText) {
+    if (mySeq !== seq) return;
+    typed.textContent += ch;
+    await new Promise(r => setTimeout(r, 34 + Math.random() * 40));
+  }
   cur.remove();
 }
-
-async function showPage(name) {
-  const data = CONTENT.pages[name];
-  if (!data || busy) return;
-  busy = true;
-  setActiveChip(name);
-
-  page.style.transition = reducedMotion ? 'none' : 'opacity .22s ease';
-  page.style.opacity = 0;
-  await new Promise(r => setTimeout(r, reducedMotion ? 0 : 230));
-  page.innerHTML = '';
-  page.style.opacity = 1;
-
-  await typeCmdLine(page, data.cmd || name);
-
-  /* text first */
-  let i = 0;
-  for (const [text, cls] of data.lines) {
-    const div = document.createElement('div');
-    div.className = 'line' + (cls ? ' ' + cls : '');
-    div.textContent = text || '\u00a0';
-    div.style.animationDelay = reducedMotion ? '0s' : (i * 0.09) + 's';
-    page.appendChild(div);
-    i++;
+async function renderLines(lines, mySeq, startDelay) {
+  let delay = startDelay;
+  for (const t of lines) {
+    if (mySeq !== seq) return delay;
+    term.appendChild(lineEl(t, delay));
+    delay += 90;
   }
-
-  /* illustration at the bottom */
-  if (ART[name]) {
-    const block = document.createElement('div');
-    block.className = 'art-block';
-    const art = document.createElement('pre');
-    art.className = 'art';
-    art.textContent = ART[name];
-    art.style.animationDelay = reducedMotion ? '0s' : (i * 0.09 + 0.15) + 's';
-    block.appendChild(art);
-    const capText = (CONTENT.captions || {})[name];
-    if (capText) {
-      const cap = document.createElement('div');
-      cap.className = 'art-caption';
-      cap.textContent = '· ' + capText + ' ·';
-      cap.style.animationDelay = reducedMotion ? '0s' : (i * 0.09 + 0.4) + 's';
-      block.appendChild(cap);
-    }
-    page.appendChild(block);
-  }
-  busy = false;
+  return delay;
+}
+function addTailpiece(artKey, delay) {
+  if (!ART[artKey]) return;
+  const wrap = document.createElement("div");
+  wrap.className = "tailpiece";
+  wrap.style.animationDelay = delay + "ms";
+  const pre = document.createElement("pre");
+  pre.textContent = ART[artKey].replace(/^\n/, "").replace(/\n\s*$/, "");
+  wrap.appendChild(pre);
+  term.appendChild(wrap);
+}
+async function showPage(id) {
+  const page = getPage(id);
+  if (!page) return;
+  CURRENT = id;
+  seq++;
+  const mySeq = seq;
+  term.innerHTML = "";
+  buildChips();
+  await typeCommand(cmdFor(id), mySeq);
+  if (mySeq !== seq) return;
+  const d = await renderLines(page.lines, mySeq, 60);
+  if (mySeq !== seq) return;
+  addTailpiece(id, d + 250);
+  term.scrollTop = 0;
+}
+async function showSystem(lines) {
+  seq++;
+  const mySeq = seq;
+  term.innerHTML = "";
+  buildChips();
+  await renderLines(lines, mySeq, 0);
 }
 
-/* ================= COMMANDS ================= */
-function flashMessage(html, cls){
-  const div = document.createElement('div');
-  div.className = 'line ' + (cls || 'dim');
-  div.style.animationDelay = '0s';
-  div.innerHTML = html;
-  page.appendChild(div);
-  page.scrollTop = page.scrollHeight;
+/* ---------- COMMANDS ---------- */
+function runCommand(raw) {
+  const c = raw.trim().toLowerCase();
+  if (!c) return;
+  const target = ALIASES[c];
+  if (target === ":help")  { showSystem(HELP); return; }
+  if (target === ":hire")  { showSystem(HIRE); return; }
+  if (target === ":theme") { cycleTheme(); return; }
+  if (target === ":lang")  { toggleLang(); return; }
+  if (target) { showPage(target); return; }
+  if (getPage(c)) { showPage(c); return; }
+  seq++;
+  const d = document.createElement("div");
+  d.className = "line sys";
+  d.style.animationDelay = "0ms";
+  d.textContent = "command not found: " + c + " — type 'help'";
+  term.appendChild(d);
+  term.scrollTop = term.scrollHeight;
 }
-
-async function runCommand(raw){
-  const cmd = raw.trim().toLowerCase();
-  if (!cmd) return;
-  const key = cmd
-    .replace(/^cat |^ls |^\.\//,'')
-    .replace(/\.txt$|\.sh$|\/$/,'')
-    .trim();
-  const map = { home:'home', hello:'home', code:'code', python:'code',
-                languages:'languages', langs:'languages',
-                projects:'projects', contact:'contact', whoami:'home', me:'home' };
-  if (map[key]) { showPage(map[key]); return; }
-
-  if (cmd.startsWith('theme')) {
-    const arg = cmd.split(/\s+/)[1];
-    if (arg && setTheme(arg)) { flashMessage('theme → ' + arg, 'dim'); }
-    else if (!arg) {
-      const cur = document.body.dataset.theme;
-      const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
-      setTheme(next);
-      flashMessage('theme → ' + next + '  (options: ' + THEMES.join(' · ') + ')', 'dim');
-    } else flashMessage('themes: ' + THEMES.join(' · '), 'dim');
-    return;
-  }
-  if (cmd === 'help'){
-    flashMessage('sections: home · code · languages · projects · contact — extras: theme, sudo hire', 'dim');
-    return;
-  }
-  if (cmd === 'sudo hire' || cmd === 'sudo hire altair'){
-    flashMessage('[sudo] password for recruiter: ********', 'dim');
-    setTimeout(() => flashMessage('permission granted. excellent judgment. → <span class="amber">contact</span>', 'white'), 600);
-    return;
-  }
-  if (cmd === 'sudo' || cmd.startsWith('sudo ')){
-    flashMessage('try: sudo hire', 'dim'); return;
-  }
-  if (cmd === 'clear'){ page.innerHTML = ''; return; }
-  flashMessage('command not found: ' + esc(cmd) + ' — try `help`', 'err');
+function cycleTheme() {
+  THEME = THEMES[(THEMES.indexOf(THEME) + 1) % THEMES.length];
+  applyTheme();
 }
-
-cmdInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter'){ const v = cmdInput.value; cmdInput.value = ''; runCommand(v); }
-});
-chips.addEventListener('click', e => {
-  const btn = e.target.closest('.chip');
-  if (btn) runCommand(btn.dataset.cmd);
+function toggleLang() {
+  LANG = LANG === "ru" ? "en" : "ru";
+  applyLang();
+  showPage(CURRENT);
+}
+themeBtn.onclick = cycleTheme;
+langBtn.onclick = toggleLang;
+cmdInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") { runCommand(cmdInput.value); cmdInput.value = ""; }
 });
 
-/* ================= EXTERNAL CONTENT + BOOT ================= */
-async function loadContent() {
+/* ---------- BOOT ---------- */
+async function loadMD(name) {
   try {
-    const res = await fetch('content.json', { cache: 'no-store' });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.pages) CONTENT = json;
-    }
-  } catch (e) { /* no content.json — use built-in text */ }
+    const res = await fetch(name, { cache: "no-store" });
+    if (!res.ok) return null;
+    return parseContent(await res.text());
+  } catch (e) { return null; }
 }
-
-async function boot(){
-  const b = document.createElement('div');
-  b.className = 'line dim';
-  b.style.animationDelay = '0s';
-  b.textContent = 'booting … ok';
-  page.appendChild(b);
-  await loadContent();
-  await new Promise(r => setTimeout(r, reducedMotion ? 0 : 500));
-  showPage('home');
+async function boot() {
+  const [ru, en] = await Promise.all([loadMD("content.ru.md"), loadMD("content.en.md")]);
+  if (ru && ru.order.length) RU = ru;
+  if (en && en.order.length) EN = en;
+  applyTheme();
+  applyLang();
+  showPage("home");
 }
 boot();
 </script>
