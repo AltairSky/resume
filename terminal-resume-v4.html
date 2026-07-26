@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>altair@resume:~</title>
+<style>
+  /* ============ THEMES ============ */
+  body[data-theme="amber"] {
+    --bg: #0a0500;
+    --term-bg: rgba(16, 9, 2, 0.92);
+    --fg: #ffb643;
+    --fg-dim: #8a6226;
+    --accent: #ffe9c9;
+    --bright: #fff4e0;
+    --err: #ff6b5e;
+    --border: rgba(255, 182, 67, 0.25);
+    --glow: 0 0 6px rgba(255, 182, 67, 0.4);
+    --glow-strong: 0 0 12px rgba(255, 182, 67, 0.55);
+    --chip-bg: rgba(255, 182, 67, 0.07);
+    --chip-bg-hover: rgba(255, 182, 67, 0.16);
+    --scanlines: 1;
+  }
+  body[data-theme="green"] {
+    --bg: #04080a;
+    --term-bg: rgba(4, 12, 10, 0.9);
+    --fg: #4affa0;
+    --fg-dim: #2a8f5e;
+    --accent: #ffc26e;
+    --bright: #d8f3e6;
+    --err: #ff6b6b;
+    --border: rgba(74, 255, 160, 0.22);
+    --glow: 0 0 6px rgba(74, 255, 160, 0.35);
+    --glow-strong: 0 0 12px rgba(74, 255, 160, 0.55);
+    --chip-bg: rgba(74, 255, 160, 0.06);
+    --chip-bg-hover: rgba(74, 255, 160, 0.15);
+    --scanlines: 1;
+  }
+  body[data-theme="paper"] {
+    --bg: #d9d2c2;
+    --term-bg: #efe9db;
+    --fg: #33302a;
+    --fg-dim: #8c8474;
+    --accent: #a33327;
+    --bright: #14120e;
+    --err: #a33327;
+    --border: rgba(51, 48, 42, 0.35);
+    --glow: none;
+    --glow-strong: none;
+    --chip-bg: rgba(51, 48, 42, 0.05);
+    --chip-bg-hover: rgba(51, 48, 42, 0.12);
+    --scanlines: 0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+    color: var(--fg);
+    overflow: hidden;
+    transition: background .4s ease;
+  }
+
+  /* CRT overlays — hidden on paper theme */
+  .fx-scan, .fx-vignette { position: fixed; inset: 0; pointer-events: none; transition: opacity .4s; }
+  .fx-scan {
+    z-index: 5;
+    background: repeating-linear-gradient(to bottom,
+      rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.10) 3px 4px);
+  }
+  .fx-vignette {
+    z-index: 6;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, rgba(0,0,0,0.45) 100%);
+  }
+  body[data-theme="paper"] .fx-scan,
+  body[data-theme="paper"] .fx-vignette { opacity: 0; }
+
+  .wrap {
+    position: relative; z-index: 2; height: 100%;
+    display: flex; flex-direction: column;
+    max-width: 760px; margin: 0 auto;
+    padding: clamp(8px, 2.5vh, 24px) clamp(6px, 2vw, 18px);
+  }
+  .term {
+    flex: 1; display: flex; flex-direction: column; min-height: 0;
+    background: var(--term-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 0 44px rgba(0,0,0,0.15), inset 0 0 70px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: background .4s ease, border-color .4s ease;
+  }
+  body[data-theme="paper"] .term {
+    box-shadow: 0 4px 24px rgba(51,48,42,.18);
+  }
+
+  .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .dot { width: 11px; height: 11px; border-radius: 50%; opacity: .8; }
+  .dot.r { background: #ff5f56; } .dot.y { background: #ffbd2e; } .dot.g { background: #27c93f; }
+  body[data-theme="paper"] .dot { background: var(--fg-dim); opacity: .5; }
+  .bar-title { flex: 1; text-align: center; font-size: 12px; color: var(--fg-dim); user-select: none; }
+  #themeBtn {
+    background: none; border: 1px solid var(--border);
+    color: var(--fg); font-family: inherit; font-size: 12px;
+    padding: 3px 10px; border-radius: 4px; cursor: pointer;
+    transition: all .15s;
+  }
+  #themeBtn:hover, #themeBtn:focus-visible { background: var(--chip-bg-hover); outline: none; }
+
+  #page {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: clamp(14px, 3.5vh, 30px) clamp(14px, 4.5vw, 34px) 16px;
+    display: flex; flex-direction: column;
+    scrollbar-width: thin; scrollbar-color: var(--fg-dim) transparent;
+  }
+  #page::-webkit-scrollbar { width: 6px; }
+  #page::-webkit-scrollbar-thumb { background: var(--fg-dim); border-radius: 3px; }
+
+  .cmdline { font-size: clamp(13px, 3.4vw, 15px); margin-bottom: .9em; }
+  .prompt-sym { color: var(--accent); }
+  .cmd { color: var(--bright); }
+
+  .line {
+    white-space: pre-wrap; word-break: break-word;
+    text-shadow: var(--glow);
+    font-size: clamp(15px, 4vw, 17.5px);
+    line-height: 1.75;
+    opacity: 0; transform: translateY(10px);
+    animation: rise .45s ease forwards;
+  }
+  .line.head {
+    color: var(--accent);
+    font-size: clamp(17px, 4.8vw, 22px);
+    letter-spacing: .18em;
+    margin-bottom: .5em;
+  }
+  .line.gap { margin-top: .8em; }
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+  .dim { color: var(--fg-dim); text-shadow: none; }
+  .amber { color: var(--accent); }
+  .white { color: var(--bright); }
+  .err { color: var(--err); }
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ---- illustration: bottom of the page ---- */
+  .art-block {
+    margin-top: auto;           /* pushes art to the bottom of the page area */
+    padding-top: 1.6em;
+  }
+  .art {
+    display: block;
+    text-align: center;
+    color: var(--fg);
+    font-size: clamp(8px, 2.35vw, 14px);
+    line-height: 1.18;
+    text-shadow: var(--glow-strong);
+    white-space: pre;
+    opacity: 0; transform: scale(.96) translateY(8px);
+    animation: artIn .7s ease forwards;
+  }
+  @keyframes artIn { to { opacity: 1; transform: scale(1) translateY(0); } }
+  .art-caption {
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: clamp(11px, 3vw, 12.5px);
+    margin-top: .6em;
+    opacity: 0; animation: rise .5s ease .3s forwards;
+  }
+
+  .cursor {
+    display: inline-block; width: .6em; height: 1.1em;
+    background: var(--fg); vertical-align: text-bottom;
+    box-shadow: var(--glow);
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #inputRow {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px clamp(12px, 4vw, 24px) 4px; flex-shrink: 0;
+    border-top: 1px solid var(--border);
+  }
+  #cmdInput {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--bright); font-family: inherit;
+    font-size: clamp(13px, 3.4vw, 15px);
+    caret-color: var(--fg);
+  }
+  #chips {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 8px clamp(12px, 4vw, 24px) 14px; flex-shrink: 0;
+  }
+  .chip {
+    background: var(--chip-bg);
+    border: 1px solid var(--fg-dim);
+    color: var(--fg); font-family: inherit;
+    font-size: clamp(12px, 3.2vw, 13px);
+    padding: 7px 15px; border-radius: 999px;
+    cursor: pointer; transition: all .15s;
+  }
+  .chip:hover, .chip:focus-visible {
+    background: var(--chip-bg-hover);
+    border-color: var(--fg); outline: none;
+  }
+  .chip.active-page {
+    background: var(--chip-bg-hover); border-color: var(--fg);
+    color: var(--bright);
+  }
+  .chip.accent { color: var(--accent); border-color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cursor { animation: none; }
+    .line, .cmdline, .art, .art-caption { animation: none; opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body data-theme="amber">
+<div class="fx-scan"></div>
+<div class="fx-vignette"></div>
+
+<div class="wrap">
+  <div class="term">
+    <div class="bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="bar-title">altair@resume: ~</span>
+      <button id="themeBtn" type="button" title="switch theme">◐ theme</button>
+    </div>
+    <div id="page" aria-live="polite"></div>
+    <div id="inputRow">
+      <span class="prompt-sym">$</span>
+      <input id="cmdInput" type="text" autocomplete="off" autocapitalize="off"
+             spellcheck="false" placeholder="type a command, or tap below" aria-label="terminal command input">
+    </div>
+    <div id="chips" role="group" aria-label="sections">
+      <button class="chip" data-cmd="home">home</button>
+      <button class="chip" data-cmd="code">code</button>
+      <button class="chip" data-cmd="languages">languages</button>
+      <button class="chip" data-cmd="projects">projects</button>
+      <button class="chip accent" data-cmd="contact">contact</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONTENT — everything a visitor reads lives in this object.
+   If a file named content.json sits next to this html file,
+   it is loaded instead, so you can edit text without touching
+   this file at all. Same structure as DEFAULT_CONTENT below.
+   ============================================================ */
+const DEFAULT_CONTENT = {
+  pages: {
+    home: {
+      cmd: "./hello.sh",
+      lines: [
+        ["A L T A I R", "head"],
+        ["Test text. A couple of plain sentences about", ""],
+        ["who I am will go here. No resume language.", ""],
+        ["", "gap"],
+        ["Tap the buttons below to look around.", "dim"]
+      ]
+    },
+    code: {
+      cmd: "cat code.txt",
+      lines: [
+        ["CODE", "head"],
+        ["Test text about Python. Bots, scripts,", ""],
+        ["automation — a few honest lines about what", ""],
+        ["I've actually built and how.", ""],
+        ["", "gap"],
+        ["Maybe one example with a number in it.", "dim"]
+      ]
+    },
+    languages: {
+      cmd: "cat languages.txt",
+      lines: [
+        ["LANGUAGES", "head"],
+        ["Test text. Russian, English, Czech —", ""],
+        ["what I speak, what I teach, how it works.", ""],
+        ["", "gap"],
+        ["Something about tutoring goes here too.", "dim"]
+      ]
+    },
+    projects: {
+      cmd: "ls projects/",
+      lines: [
+        ["PROJECTS", "head"],
+        ["01 · test project one", "amber"],
+        ["Two plain sentences about it.", ""],
+        ["", "gap"],
+        ["02 · test project two", "amber"],
+        ["Two plain sentences about it.", ""],
+        ["", "gap"],
+        ["03 · test project three", "amber"],
+        ["Two plain sentences about it.", ""]
+      ]
+    },
+    contact: {
+      cmd: "./contact.sh",
+      lines: [
+        ["CONTACT", "head"],
+        ["email     test@example.com", "amber"],
+        ["telegram  @testhandle", "amber"],
+        ["", "gap"],
+        ["One line inviting people to write.", "dim"]
+      ]
+    }
+  },
+  captions: {
+    home: "a field, for no reason",
+    code: "the cat sleeps while the bots work",
+    languages: "the owl knows three languages",
+    projects: "a whale, mid-thought",
+    contact: "snail mail, but faster"
+  }
+};
+
+let CONTENT = DEFAULT_CONTENT;
+
+/* ================= ILLUSTRATIONS ================= */
+const ART = {
+home: String.raw`
+          wWWWw               wWWWw
+    vVVVv (___)     wWWWw     (___)  vVVVv
+    (___)  ~Y~      (___)      ~Y~   (___)
+     ~Y~   \|        ~Y~        |/    ~Y~
+     \|   \ |/      \| /      \\|    \ |/
+    \\|// \\|//    \\\|///    \\|// \\\|///
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^`,
+
+code: String.raw`
+        |\      _,,,---,,_
+  zzZ  /,'.-'"'    -.  ;-;;,_
+      |,4-  ) )-,_..;\ (  ,'-'
+     '---''(_/--'  '-'\_)`,
+
+languages: String.raw`
+          ,_______,
+          /       \
+         |  ,-. ,-.|
+         |  (o) (o)|
+          \    <   |
+           \  __  /
+           /'-..-'\
+          / |    | \
+         ;  |    |  ;
+         |  |    |  |
+          \_|    |_/
+           (__,,__)`,
+
+projects: String.raw`
+                 .
+                ":"
+              ___:____     |"\/"|
+            ,'        '.    \  /
+            |  O        \___/  |
+          ~^~^~^~^~^~^~^~^~^~^~^~^~`,
+
+contact: String.raw`
+         .----.   @   @
+        / .-"-.'.  \v/
+        | | '\ \ \_/ )
+      ,-\ '-.' /.'  /
+     '---'----'----'`
+};
+
+/* ================= THEMES ================= */
+const THEMES = ['amber', 'green', 'paper'];
+function setTheme(name) {
+  if (!THEMES.includes(name)) return false;
+  document.body.dataset.theme = name;
+  return true;
+}
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur = document.body.dataset.theme;
+  setTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+});
+
+/* ================= ENGINE ================= */
+const page = document.getElementById('page');
+const cmdInput = document.getElementById('cmdInput');
+const chips = document.getElementById('chips');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let busy = false;
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setActiveChip(name) {
+  document.querySelectorAll('.chip').forEach(c =>
+    c.classList.toggle('active-page', c.dataset.cmd === name));
+}
+
+async function typeCmdLine(container, cmd) {
+  const div = document.createElement('div');
+  div.className = 'cmdline';
+  div.innerHTML = '<span class="prompt-sym">$ </span>';
+  const span = document.createElement('span');
+  span.className = 'cmd';
+  div.appendChild(span);
+  const cur = document.createElement('span');
+  cur.className = 'cursor';
+  div.appendChild(cur);
+  container.appendChild(div);
+  if (reducedMotion) { span.textContent = cmd; cur.remove(); return; }
+  for (const c of cmd) {
+    span.textContent += c;
+    await new Promise(r => setTimeout(r, 30 + Math.random() * 28));
+  }
+  await new Promise(r => setTimeout(r, 160));
+  cur.remove();
+}
+
+async function showPage(name) {
+  const data = CONTENT.pages[name];
+  if (!data || busy) return;
+  busy = true;
+  setActiveChip(name);
+
+  page.style.transition = reducedMotion ? 'none' : 'opacity .22s ease';
+  page.style.opacity = 0;
+  await new Promise(r => setTimeout(r, reducedMotion ? 0 : 230));
+  page.innerHTML = '';
+  page.style.opacity = 1;
+
+  await typeCmdLine(page, data.cmd || name);
+
+  /* text first */
+  let i = 0;
+  for (const [text, cls] of data.lines) {
+    const div = document.createElement('div');
+    div.className = 'line' + (cls ? ' ' + cls : '');
+    div.textContent = text || '\u00a0';
+    div.style.animationDelay = reducedMotion ? '0s' : (i * 0.09) + 's';
+    page.appendChild(div);
+    i++;
+  }
+
+  /* illustration at the bottom */
+  if (ART[name]) {
+    const block = document.createElement('div');
+    block.className = 'art-block';
+    const art = document.createElement('pre');
+    art.className = 'art';
+    art.textContent = ART[name];
+    art.style.animationDelay = reducedMotion ? '0s' : (i * 0.09 + 0.15) + 's';
+    block.appendChild(art);
+    const capText = (CONTENT.captions || {})[name];
+    if (capText) {
+      const cap = document.createElement('div');
+      cap.className = 'art-caption';
+      cap.textContent = '· ' + capText + ' ·';
+      cap.style.animationDelay = reducedMotion ? '0s' : (i * 0.09 + 0.4) + 's';
+      block.appendChild(cap);
+    }
+    page.appendChild(block);
+  }
+  busy = false;
+}
+
+/* ================= COMMANDS ================= */
+function flashMessage(html, cls){
+  const div = document.createElement('div');
+  div.className = 'line ' + (cls || 'dim');
+  div.style.animationDelay = '0s';
+  div.innerHTML = html;
+  page.appendChild(div);
+  page.scrollTop = page.scrollHeight;
+}
+
+async function runCommand(raw){
+  const cmd = raw.trim().toLowerCase();
+  if (!cmd) return;
+  const key = cmd
+    .replace(/^cat |^ls |^\.\//,'')
+    .replace(/\.txt$|\.sh$|\/$/,'')
+    .trim();
+  const map = { home:'home', hello:'home', code:'code', python:'code',
+                languages:'languages', langs:'languages',
+                projects:'projects', contact:'contact', whoami:'home', me:'home' };
+  if (map[key]) { showPage(map[key]); return; }
+
+  if (cmd.startsWith('theme')) {
+    const arg = cmd.split(/\s+/)[1];
+    if (arg && setTheme(arg)) { flashMessage('theme → ' + arg, 'dim'); }
+    else if (!arg) {
+      const cur = document.body.dataset.theme;
+      const next = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
+      setTheme(next);
+      flashMessage('theme → ' + next + '  (options: ' + THEMES.join(' · ') + ')', 'dim');
+    } else flashMessage('themes: ' + THEMES.join(' · '), 'dim');
+    return;
+  }
+  if (cmd === 'help'){
+    flashMessage('sections: home · code · languages · projects · contact — extras: theme, sudo hire', 'dim');
+    return;
+  }
+  if (cmd === 'sudo hire' || cmd === 'sudo hire altair'){
+    flashMessage('[sudo] password for recruiter: ********', 'dim');
+    setTimeout(() => flashMessage('permission granted. excellent judgment. → <span class="amber">contact</span>', 'white'), 600);
+    return;
+  }
+  if (cmd === 'sudo' || cmd.startsWith('sudo ')){
+    flashMessage('try: sudo hire', 'dim'); return;
+  }
+  if (cmd === 'clear'){ page.innerHTML = ''; return; }
+  flashMessage('command not found: ' + esc(cmd) + ' — try `help`', 'err');
+}
+
+cmdInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ const v = cmdInput.value; cmdInput.value = ''; runCommand(v); }
+});
+chips.addEventListener('click', e => {
+  const btn = e.target.closest('.chip');
+  if (btn) runCommand(btn.dataset.cmd);
+});
+
+/* ================= EXTERNAL CONTENT + BOOT ================= */
+async function loadContent() {
+  try {
+    const res = await fetch('content.json', { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.pages) CONTENT = json;
+    }
+  } catch (e) { /* no content.json — use built-in text */ }
+}
+
+async function boot(){
+  const b = document.createElement('div');
+  b.className = 'line dim';
+  b.style.animationDelay = '0s';
+  b.textContent = 'booting … ok';
+  page.appendChild(b);
+  await loadContent();
+  await new Promise(r => setTimeout(r, reducedMotion ? 0 : 500));
+  showPage('home');
+}
+boot();
+</script>
+</body>
+</html>
