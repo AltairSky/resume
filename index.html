@@ -313,6 +313,8 @@ const CMDS = {
   code: "cat code/",
   langs: "ls languages/",
   projects: "ls projects/",
+  travels: "travel",
+  puteshestviya: "travel",
   contact: "ping altair"
 };
 function cmdFor(id) { return CMDS[id] || ("cat " + id + "/"); }
@@ -325,7 +327,7 @@ const THEMES = ["amber", "green", "ice", "plasma", "ruby", "paper"];
 const HELP = [
   "# commands",
   "",
-  "home · code · languages · projects · contact",
+  "type a tab name (home, code, travel\u2026) to open it",
   "theme · switch color theme",
   "lang  · switch language (RU/EN)",
   "help  · this list",
@@ -354,6 +356,7 @@ const ALIASES = {
   "help": ":help", "помощь": ":help", "?": ":help",
   "theme": ":theme", "тема": ":theme",
   "lang": ":lang", "язык": ":lang", "en": ":lang", "ru": ":lang",
+  "travel": ":travel", "путешествия": ":travel",
   "sudo hire": ":hire",
   "status": ":status", "статус": ":status"
 };
@@ -608,6 +611,7 @@ function runCommand(raw) {
   if (target === ":help")  { showSystem(HELP); return; }
   if (target === ":hire")  { showSystem(HIRE); return; }
   if (target === ":status"){ showSystem(statusLines()); return; }
+  if (target === ":travel"){ showPage(primary().pages["travels"] ? "travels" : "puteshestviya"); return; }
   if (target === ":theme") { cycleTheme(); return; }
   if (target === ":lang")  { toggleLang(); return; }
   if (target) { showPage(target); return; }
