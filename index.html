@@ -166,7 +166,7 @@
   }
 </style>
 </head>
-<body data-theme="amber">
+<body data-theme="ruby">
 
 <div id="bar">
   <div class="dots"><span></span><span></span><span></span></div>
@@ -438,7 +438,7 @@ function parseContent(text) {
 let RU = parseContent(FALLBACK_RU);
 let EN = parseContent(FALLBACK_EN);
 let LANG = localStorage.getItem("resume-lang") || "ru";
-let THEME = localStorage.getItem("resume-theme") || "amber";
+let THEME = localStorage.getItem("resume-theme") || "ruby";
 if (!THEMES.includes(THEME)) THEME = "amber";
 let CURRENT = "home";
 let seq = 0;
